@@ -4,7 +4,6 @@ A concurrent in-memory key-value cache server in C++20: lock-striped LRU shards
 behind a small TCP text protocol, with a benchmark harness that measures how
 throughput and tail latency scale with threads.
 
-> Status: in progress. See [docs/TASKS.md](docs/TASKS.md).
 
 ## Why
 

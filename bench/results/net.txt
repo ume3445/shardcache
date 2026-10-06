@@ -1,0 +1,2 @@
+locked   connections=32 requests=1600000 throughput=180507 req/s p50=156.7us p99=576.3us errors=0
+sharded  connections=32 requests=1600000 throughput=185913 req/s p50=160.8us p99=430.3us errors=0

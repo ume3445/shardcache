@@ -1,10 +1,15 @@
-# Your tasks
+# Status and study plan
 
-Everything around the cache is built: CMake, the TCP server and protocol, a
-client, the benchmark, the load generator, and 28 tests. What's left is the
-part an interviewer will ask about, so it's yours to write. Use Claude or
-anyone else to *review* your code and explain concepts, not to write it. If you
-can't explain a line, it shouldn't be on your resume.
+Tasks 1 (LruCache) and 2 (ShardedCache) are implemented: all 28 tests pass,
+and ThreadSanitizer, AddressSanitizer + UBSan, GCC and Clang builds are all
+clean. The code is commented to be studied. **This does not go on your resume
+until you can do all of the following without looking:**
+
+- [ ] Write LruCache from scratch in under 20 minutes (it's LeetCode 146; do it there in Java too)
+- [ ] Explain why get() needs an exclusive lock and why shared_mutex wouldn't help
+- [ ] Explain the shard routing, the capacity split, alignas(64), and why unique_ptr
+- [ ] Answer every question in docs/DESIGN.md out loud, in your own words
+- [ ] Run the benchmark on your Mac and explain each number in the results
 
 ## 0. Setup (macOS)
 
@@ -13,49 +18,19 @@ xcode-select --install          # compiler, if you don't have it
 brew install cmake ninja
 chmod +x scripts/run_bench.sh
 cmake -S . -B build -G Ninja && cmake --build build
-./build/shardcache-tests        # protocol + server tests pass now; cache tests fail until you finish 1 and 2
+./build/shardcache-tests        # 28/28 should pass
+
+# data races / memory errors
+cmake -S . -B build-tsan -G Ninja -DSHARDCACHE_TSAN=ON && cmake --build build-tsan && ./build-tsan/shardcache-tests
 ```
 
-## 1. LruCache (`include/shardcache/lru_cache.h`, `src/lru_cache.cc`)
-
-Contract is in the header. get / put / erase must be O(1).
-
-Hints, read only if stuck:
-- Two structures: something that finds a key in O(1), and something that
-  keeps recency order and can move or remove any element in O(1).
-- `std::list::splice` moves a node without invalidating iterators.
-- Watch out: storing a `std::string_view` key in the map that points into a
-  list node is a classic dangling-reference bug. Store the key, or think hard.
-
-Done when: `./build/shardcache-tests --gtest_filter='LruCache*'` passes,
-including `MatchesReferenceModel` (50,000 random ops against a reference).
-
-## 2. ShardedCache (`include/shardcache/sharded_cache.h`, `src/sharded_cache.cc`)
-
-Contract is in the header. Each shard = one LruCache + one mutex.
-
-Hints:
-- `std::mutex` can't be copied or moved, so a `std::vector<Shard>` won't
-  work directly. Why? What are your options?
-- Pick the shard with a hash of the key. Is `std::hash<std::string>{}(key) % n` good enough?
-- Split the capacity exactly: 10 slots over 4 shards = 3, 3, 2, 2.
-- Two shards' mutexes sitting on the same 64-byte cache line will slow each
-  other down even though they never share data. Look up "false sharing" and `alignas(64)`.
-
-Done when every test passes, and the ThreadSanitizer build is clean:
-
-```bash
-cmake -S . -B build-tsan -G Ninja -DSHARDCACHE_TSAN=ON && cmake --build build-tsan
-./build-tsan/shardcache-tests      # must print no "WARNING: ThreadSanitizer"
-```
-
-## 3. Benchmark and experiments
+## 1. Benchmark and experiments
 
 ```bash
 ./scripts/run_bench.sh            # writes bench/results/RESULTS.md with a headline line
 ```
 
-Then run these experiments and write one sentence on each in docs/DESIGN.md:
+Then rerun these experiments with `--threads 8` and compare to docs/DESIGN.md (measured on 2 cores):
 
 | Experiment | Command | Question |
 |---|---|---|
@@ -64,9 +39,7 @@ Then run these experiments and write one sentence on each in docs/DESIGN.md:
 | Write-heavy | `--read-ratio 0.5` vs `0.99` | Does the gap change? |
 | Network | `./scripts/run_bench.sh` net section | Why is the network number so much lower than in-process? Where does the time go? |
 
-## 4. Write docs/DESIGN.md in your own words
-
-Answer each one in 2 to 4 sentences. These are the questions you'll get.
+## 2. Interview questions (answered in docs/DESIGN.md, practice them out loud)
 
 1. Why a hash map plus a linked list? What's the complexity of each operation?
 2. `get()` only reads, so why does it need an exclusive lock? Why wouldn't `std::shared_mutex` help here?
@@ -78,7 +51,7 @@ Answer each one in 2 to 4 sentences. These are the questions you'll get.
 8. Why `TCP_NODELAY`? What does pipelining buy you?
 9. How would you scale this across many machines? Read "Scaling Memcache at Facebook" (NSDI 2013, about 14 pages). It's Meta's own paper, and being able to discuss it in an interview is a real signal.
 
-## 5. Stretch (only after 1 to 4)
+## 3. Stretch
 
 - Make reads take a shared lock by replacing strict LRU with CLOCK (a reference
   bit instead of moving nodes). Benchmark it against ShardedCache and explain the trade-off.
