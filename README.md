@@ -5,6 +5,12 @@ behind a small TCP text protocol, with a benchmark harness that measures how
 throughput and tail latency scale with threads.
 
 
+<p align="center">
+  <img src="docs/demo.gif" alt="Terminal session: PING, SET, GET, DEL, STATS and pipelined requests against the running server" width="720">
+</p>
+
+*A real session against the running server (the same commands as in [Run](#run)).*
+
 ## Why
 
 A single LRU cache behind one mutex serializes every request, including reads,
@@ -72,6 +78,11 @@ Keys are 1 to 250 bytes with no whitespace. Requests can be pipelined; responses
 
 Workload: 1M keys, 500k capacity, 90% reads, Zipf(0.99) key popularity, 64-byte
 values, median of 3 runs. Results: [bench/results/RESULTS.md](bench/results/RESULTS.md).
+
+![Throughput vs threads: the single-mutex cache collapses as threads are added while the sharded cache scales](docs/scaling.png)
+
+At 8 threads the sharded cache does 8.43M ops/s against 1.46M for the single-mutex baseline (5.8x), with p99 latency of 18.6 us against 88.4 us. Numbers are from an 8-thread Apple Silicon Mac; the full table, including network results, is in the results file.
+
 
 ## Design notes
 
