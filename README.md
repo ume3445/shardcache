@@ -76,6 +76,12 @@ Keys are 1 to 250 bytes with no whitespace. Requests can be pipelined; responses
 ./scripts/run_bench.sh
 ```
 
+<p align="center">
+  <img src="docs/bench.gif" alt="Terminal recording of the quick benchmark run: throughput and latency for the locked and sharded caches at 1, 2, 4 and 8 threads, then the loopback network test" width="820">
+</p>
+
+*A quick run (`QUICK=1`) on an 8-thread Mac. Sharding pays off in the in-process table. Over loopback TCP the two come out close.*
+
 Workload: 1M keys, 500k capacity, 90% reads, Zipf(0.99) key popularity, 64-byte
 values, median of 3 runs. Results: [bench/results/RESULTS.md](bench/results/RESULTS.md).
 
